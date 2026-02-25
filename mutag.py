@@ -8,10 +8,12 @@ from torch.nn import Sequential, Linear, ReLU
 from torch_geometric.nn import (GINConv,global_mean_pool,GATConv,ChebConv,GCNConv)
 from libs.spect_conv import SpectConv,ML3Layer
 from libs.utils import MutagDataset,SpectralDesign
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
+
 
 torch.manual_seed(0)
   
-transform = SpectralDesign(nmax=28,adddegree=True,recfield=1,dv=4,nfreq=3) 
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=28,adddegree=True,recfield=1,dv=4,nfreq=3) 
 dataset = MutagDataset(root="dataset/mutag/",pre_transform=transform)
 
 
@@ -314,8 +316,8 @@ testsize=0
 for fold in range(0,10):
     tsid=np.loadtxt('dataset/mutag/raw/10fold_idx/test_idx-'+str(fold+1)+'.txt')
     trid=np.loadtxt('dataset/mutag/raw/10fold_idx/train_idx-'+str(fold+1)+'.txt')
-    trid=trid.astype(np.int)
-    tsid=tsid.astype(np.int)
+    trid=trid.astype(int)
+    tsid=tsid.astype(int)
 
     bsize=16
     train_loader = DataLoader(dataset[[i for i in trid]], batch_size=bsize, shuffle=True)    

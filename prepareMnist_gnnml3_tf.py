@@ -49,23 +49,54 @@ for i in range(0,len(d)):
             M=M.dot(M) 
     M=(M>0)
 
-    deg = A.sum(axis=0) 
-    # normalized Laplacian matrix.
-    dis=1/np.sqrt(deg)
+    with np.errstate(divide='ignore'):
+        dis=1/np.sqrt(deg)
     dis[np.isinf(dis)]=0
     dis[np.isnan(dis)]=0
     D=np.diag(dis)
     nL=np.eye(D.shape[0])-(A.dot(D)).T.dot(D)
-    V,U = np.linalg.eigh(nL) 
-    V[V<0]=0
 
-    freqcenter=np.linspace(V.min(),V.max(),nkernel)        
+    vmax = 2.0
+    vmin = 0.0
+    freqcenter = np.linspace(vmin, vmax, nkernel)
+    mid = (vmax + vmin) / 2.0
+    half_width = (vmax - vmin) / 2.0
+    B_tilde = (nL - mid * np.eye(nd)) / half_width
+
+    num_probes = 10
+    cheb_degree = 30
+    z = np.random.choice([-1.0, 1.0], size=(nd, num_probes))
+    T_vectors = np.zeros((cheb_degree + 1, nd, num_probes))
+    T_vectors[0] = z
+    if cheb_degree >= 1:
+        T_vectors[1] = B_tilde.dot(z)
+    for k in range(2, cheb_degree + 1):
+        T_vectors[k] = 2 * B_tilde.dot(T_vectors[k-1]) - T_vectors[k-2]
+
     # design convolution supports (aka edge features)         
+    from numpy.polynomial.chebyshev import Chebyshev
     for j in range(0,nkernel): 
-        SP[i,j ,0:nd,0:nd]=M* (U.dot(np.diag(np.exp(-(dv*(V-freqcenter[j])**2))).dot(U.T)))
-    SP[i,nkernel ,0:nd,0:nd]=np.eye(nd)
-
-
+        fc = freqcenter[j]
+        def phi_s(lam):
+            return np.exp(-dv * (lam - fc)**2)
+        def phi_s_tilde(x):
+            lam = x * half_width + mid
+            return phi_s(lam)
+        
+        c = Chebyshev.interpolate(phi_s_tilde, deg=cheb_degree).coef
+        filtered_z = np.zeros((nd, num_probes))
+        for k in range(len(c)):
+            filtered_z += c[k] * T_vectors[k]
+            
+        sp_layer = np.zeros((nd, nd))
+        for r in range(num_probes):
+            outer = np.outer(filtered_z[:, r], z[:, r])
+            sp_layer += (M * outer)
+        sp_layer /= num_probes
+        
+        SP[i, j, 0:nd, 0:nd] = sp_layer
+        
+    SP[i, nkernel, 0:nd, 0:nd]=np.eye(nd)
 d=test_dataset
 for i in range(0,len(d)):
     print(i)
@@ -85,21 +116,54 @@ for i in range(0,len(d)):
             M=M.dot(M) 
     M=(M>0)
 
-    deg = A.sum(axis=0) 
-    # normalized Laplacian matrix.
-    dis=1/np.sqrt(deg)
+    with np.errstate(divide='ignore'):
+        dis=1/np.sqrt(deg)
     dis[np.isinf(dis)]=0
     dis[np.isnan(dis)]=0
     D=np.diag(dis)
     nL=np.eye(D.shape[0])-(A.dot(D)).T.dot(D)
-    V,U = np.linalg.eigh(nL) 
-    V[V<0]=0
 
-    freqcenter=np.linspace(V.min(),V.max(),nkernel)        
+    vmax = 2.0
+    vmin = 0.0
+    freqcenter = np.linspace(vmin, vmax, nkernel)
+    mid = (vmax + vmin) / 2.0
+    half_width = (vmax - vmin) / 2.0
+    B_tilde = (nL - mid * np.eye(nd)) / half_width
+
+    num_probes = 10
+    cheb_degree = 30
+    z = np.random.choice([-1.0, 1.0], size=(nd, num_probes))
+    T_vectors = np.zeros((cheb_degree + 1, nd, num_probes))
+    T_vectors[0] = z
+    if cheb_degree >= 1:
+        T_vectors[1] = B_tilde.dot(z)
+    for k in range(2, cheb_degree + 1):
+        T_vectors[k] = 2 * B_tilde.dot(T_vectors[k-1]) - T_vectors[k-2]
+
     # design convolution supports (aka edge features)         
+    from numpy.polynomial.chebyshev import Chebyshev
     for j in range(0,nkernel): 
-        SP[i+60000,j ,0:nd,0:nd]=M* (U.dot(np.diag(np.exp(-(dv*(V-freqcenter[j])**2))).dot(U.T)))
-    SP[i+60000,nkernel ,0:nd,0:nd]=np.eye(nd)
+        fc = freqcenter[j]
+        def phi_s(lam):
+            return np.exp(-dv * (lam - fc)**2)
+        def phi_s_tilde(x):
+            lam = x * half_width + mid
+            return phi_s(lam)
+        
+        c = Chebyshev.interpolate(phi_s_tilde, deg=cheb_degree).coef
+        filtered_z = np.zeros((nd, num_probes))
+        for k in range(len(c)):
+            filtered_z += c[k] * T_vectors[k]
+             
+        sp_layer = np.zeros((nd, nd))
+        for r in range(num_probes):
+            outer = np.outer(filtered_z[:, r], z[:, r])
+            sp_layer += (M * outer)
+        sp_layer /= num_probes
+        
+        SP[i+60000, j, 0:nd, 0:nd] = sp_layer
+        
+    SP[i+60000, nkernel, 0:nd, 0:nd]=np.eye(nd)
 
 np.save('supports',SP)
 np.save('feats',FF)

@@ -11,9 +11,11 @@ import numpy as np
 
 from libs.spect_conv import SpectConv,ML3Layer
 from libs.utils import Grapg8cDataset,SpectralDesign
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
 
 
-transform = SpectralDesign(nmax=8,recfield=1,dv=2,nfreq=5,adddegree=True)
+
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=8,recfield=1,dv=2,nfreq=5,adddegree=True)
 dataset = Grapg8cDataset(root="dataset/graph8c/",pre_transform=transform)
 train_loader = DataLoader(dataset, batch_size=100, shuffle=False)
 
@@ -255,7 +257,7 @@ class GNNML3(nn.Module):
         nout2=16
 
         nin=nout1+nout2
-        ne=dataset.data.edge_attr2.shape[1]
+        ne=dataset._data.edge_attr2.shape[1]
         ninp=dataset.num_features
 
         self.conv1=ML3Layer(learnedge=True,nedgeinput=ne,nedgeoutput=ne,ninp=ninp,nout1=nout1,nout2=nout2)

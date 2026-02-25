@@ -26,7 +26,7 @@ class PtcDataset(InMemoryDataset):
         
         super(PtcDataset, self).__init__(root, transform, pre_transform)
         
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -48,7 +48,7 @@ class PtcDataset(InMemoryDataset):
         A=a['A'][0]        
         F=a['F'][0]
         #Y=a['y'].astype(np.float32) #(a['y']+1)//2
-        Y=a['Y'].astype(np.int)
+        Y=a['Y'].astype(int)
         Y=Y[:,0]
 
         data_list = []
@@ -73,7 +73,7 @@ class ProteinsDataset(InMemoryDataset):
         self.contfeat=contfeat
         super(ProteinsDataset, self).__init__(root, transform, pre_transform)
         
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -95,7 +95,7 @@ class ProteinsDataset(InMemoryDataset):
         A=a['A'][0]        
         F=a['F'][0]
         #Y=a['y'].astype(np.float32) #(a['y']+1)//2
-        Y=a['Y'].astype(np.int)
+        Y=a['Y'].astype(int)
         Y=Y[:,0]
 
         data_list = []
@@ -126,7 +126,7 @@ class EnzymesDataset(InMemoryDataset):
         self.contfeat=contfeat
         super(EnzymesDataset, self).__init__(root, transform, pre_transform)
         
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -148,7 +148,7 @@ class EnzymesDataset(InMemoryDataset):
         A=a['A'][0]        
         F=a['F'][0]
         #Y=a['y'].astype(np.float32) #(a['y']+1)//2
-        Y=a['Y'][0].astype(np.int)
+        Y=a['Y'][0].astype(int)
 
         data_list = []
         for i in range(len(A)):
@@ -175,7 +175,7 @@ class EnzymesDataset(InMemoryDataset):
 class MutagDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None):
         super(MutagDataset, self).__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -220,7 +220,7 @@ class MutagDataset(InMemoryDataset):
 class Zinc12KDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None):
         super(Zinc12KDataset, self).__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -272,7 +272,7 @@ class Zinc12KDataset(InMemoryDataset):
 class BandClassDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None):
         super(BandClassDataset, self).__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -316,7 +316,7 @@ class BandClassDataset(InMemoryDataset):
 class TwoDGrid30(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None):
         super(TwoDGrid30, self).__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -366,7 +366,7 @@ class TwoDGrid30(InMemoryDataset):
 class GraphCountDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None):
         super(GraphCountDataset, self).__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -424,7 +424,7 @@ class GraphCountDataset(InMemoryDataset):
 class PlanarSATPairsDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
         super(PlanarSATPairsDataset, self).__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -439,7 +439,16 @@ class PlanarSATPairsDataset(InMemoryDataset):
 
     def process(self):
         # Read data into huge `Data` list.
-        data_list = pickle.load(open(os.path.join(self.root, "raw/GRAPHSAT.pkl"), "rb"))
+        old_data_list = pickle.load(open(os.path.join(self.root, "raw/GRAPHSAT.pkl"), "rb"))
+        data_list = []
+        for d in old_data_list:
+            kwargs = {}
+            for k in ['x', 'edge_index', 'edge_attr', 'y', 'pos', 'norm', 'face']:
+                if k in d.__dict__:
+                    val = d.__dict__[k]
+                    if val is not None:
+                        kwargs[k] = val
+            data_list.append(Data(**kwargs))
 
         if self.pre_filter is not None:
             data_list = [data for data in data_list if self.pre_filter(data)]
@@ -453,7 +462,7 @@ class PlanarSATPairsDataset(InMemoryDataset):
 class Grapg8cDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None):
         super(Grapg8cDataset, self).__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
@@ -489,7 +498,7 @@ class Grapg8cDataset(InMemoryDataset):
 class SRDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None):
         super(SRDataset, self).__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):

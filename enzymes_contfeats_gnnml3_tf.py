@@ -2,11 +2,12 @@ from __future__ import division
 from __future__ import print_function
 
 import time
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
-from utils_tf import *
-from models_tf import DSSGCN_GC_BATCH
-from tensorflow import set_random_seed
+from libs.utils_tf import *
+from libs.models_tf import DSSGCN_GC_BATCH
+
 import matplotlib.pyplot as plt
 import scipy.io as sio
 from sklearn.model_selection import StratifiedKFold
@@ -59,22 +60,22 @@ for i in range(0,len(A)):
     dmax=max(dmax,d.max())
     dmin=min(dmin,d.min())
     # Laplacian matrix.     
-    dis=1/np.sqrt(d)
+    with np.errstate(divide='ignore'):
+        dis=1/np.sqrt(d)
     dis[np.isinf(dis)]=0
     dis[np.isnan(dis)]=0
     D=np.diag(dis)
     nL=np.eye(D.shape[0])-(W.dot(D)).T.dot(D)
-    V1,U1 = np.linalg.eigh(nL) 
-    V1[V1<0]=0
-    U.append(U1)
-    V.append(V1)
+    
+    # Store the laplacian and its eigenvalue bounds
+    U.append(nL) # Borrowing U to store L for now
+    V.append(np.array([0.0, 2.0])) # L eigenvalues bounded by [0, 2]
 
 
-vmax=0
+vmax=2.0
 nmax=0
-for v in V:    
-    vmax=max(vmax,v.max())
-    nmax=max(nmax,v.shape[0])
+for u in U:    
+    nmax=max(nmax,u.shape[0])
 
 globalmax=vmax
 
@@ -105,27 +106,62 @@ for i in range(0,len(A)):
     M=(M>0)
     
     SP[i,0,0:n,0:n]=np.eye(n)  
-    freqcenter=np.linspace(V[i].min(),V[i].max(),nkernel-1)
-    SP[i,0,0:n,0:n]=np.eye(n)       
+    vmax = 2.0
+    vmin = 0.0
+    freqcenter = np.linspace(vmin, vmax, nkernel - 1)
+    
+    mid = (vmax + vmin) / 2.0
+    half_width = (vmax - vmin) / 2.0
+    
+    # Get Laplacian from U where we stored it
+    nL = U[i] 
+    B_tilde = (nL - mid * np.eye(n)) / half_width
+
+    num_probes = 10
+    cheb_degree = 30
+    z = np.random.choice([-1.0, 1.0], size=(n, num_probes))
+    T_vectors = np.zeros((cheb_degree + 1, n, num_probes))
+    T_vectors[0] = z
+    if cheb_degree >= 1:
+        T_vectors[1] = B_tilde.dot(z)
+    for k in range(2, cheb_degree + 1):
+        T_vectors[k] = 2 * B_tilde.dot(T_vectors[k-1]) - T_vectors[k-2]
+
+    # design convolution supports (aka edge features)         
+    from numpy.polynomial.chebyshev import Chebyshev
     for ii in range(0,len(freqcenter)): 
-        SP[i,ii+1,0:n,0:n]=M* (U[i].dot(np.diag(np.exp(-(dv*(V[i]-freqcenter[ii])**2))).dot(U[i].T))) 
-              
-    # SP[i,1,0:n,0:n]= M*(U[i].dot(np.diag(np.exp(-(1*(V[i]-0.0)**2))).dot(U[i].T)))
-    # SP[i,2,0:n,0:n]= M*(U[i].dot(np.diag(np.exp(-(1*(V[i]-vmax*0.5)**2))).dot(U[i].T)))
-    # SP[i,3,0:n,0:n]= M*(U[i].dot(np.diag(np.exp(-(1*(V[i]-vmax)**2))).dot(U[i].T)))   
+        fc = freqcenter[ii]
+        def phi_s(lam):
+            return np.exp(-dv * (lam - fc)**2)
+        def phi_s_tilde(x):
+            lam = x * half_width + mid
+            return phi_s(lam)
+        
+        c = Chebyshev.interpolate(phi_s_tilde, deg=cheb_degree).coef
+        filtered_z = np.zeros((n, num_probes))
+        for k in range(len(c)):
+            filtered_z += c[k] * T_vectors[k]
+             
+        sp_layer = np.zeros((n, n))
+        for r in range(num_probes):
+            outer = np.outer(filtered_z[:, r], z[:, r])
+            sp_layer += (M * outer)
+        sp_layer /= num_probes
+        
+        SP[i, ii+1, 0:n, 0:n] = sp_layer
      
 num_supports=SP.shape[1]
 
 def normalize_wrt_train(FF,ND,trid):
     tmp=np.zeros((0,FF[0].shape[1]))
     for i in trid:
-        tmp=np.vstack((tmp,FF[i][0:int(ND[i]),:]))
+        tmp=np.vstack((tmp,FF[i][0:int(ND[i, 0]),:]))
     avg=tmp.mean(0)
     st=tmp.std(0)
     FFF=FF.copy()
     for i in range(0,len(FFF)):
-        tmp2=(FFF[i][0:int(ND[i]),:]-avg)/st        
-        FFF[i][0:int(ND[i]),:]=tmp2
+        tmp2=(FFF[i][0:int(ND[i, 0]),:]-avg)/st        
+        FFF[i][0:int(ND[i, 0]),:]=tmp2
     return FFF
 
 
@@ -144,8 +180,8 @@ for iter in range(0,20):
         
         tsid=np.loadtxt('dataset/enzymes/raw/10fold_idx/test_idx-'+str(fold+1)+'.txt')
         trid=np.loadtxt('dataset/enzymes/raw/10fold_idx/train_idx-'+str(fold+1)+'.txt')
-        trid=trid.astype(np.int)
-        tsid=tsid.astype(np.int)
+        trid=trid.astype(int)
+        tsid=tsid.astype(int)
         
         FFF=normalize_wrt_train(FF,ND,trid)       
         

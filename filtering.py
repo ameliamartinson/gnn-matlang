@@ -10,11 +10,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from libs.spect_conv import SpectConv,ML3Layer
 from libs.utils import TwoDGrid30,SpectralDesign
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
+
 from sklearn.metrics import r2_score
 
 
 
-transform = SpectralDesign(nmax=900,recfield=5,dv=10,nfreq=10,adddegree=False)
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=900,recfield=5,dv=10,nfreq=10,adddegree=False)
 dataset = TwoDGrid30(root="dataset/TwoDGrid30/",pre_transform=transform)
 
 train_loader = DataLoader(dataset[0:1], batch_size=100000, shuffle=False)

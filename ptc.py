@@ -8,12 +8,14 @@ from torch.nn import Sequential, Linear, ReLU
 from torch_geometric.nn import (GINConv,global_add_pool,global_max_pool,global_mean_pool,GATConv,ChebConv,GCNConv)
 from libs.spect_conv import SpectConv,ML3Layer
 from libs.utils import PtcDataset, SpectralDesign
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
+
 
 torch.manual_seed(1)
 
 
 
-transform = SpectralDesign(nmax=109,adddegree=True,recfield=1,dv=10,nfreq=10) 
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=109,adddegree=True,recfield=1,dv=10,nfreq=10) 
 dataset = PtcDataset(root="dataset/PTC/",pre_transform=transform)
 
 
@@ -372,8 +374,8 @@ for fold in range(0,10):
     
     tsid=np.loadtxt('dataset/PTC/raw/10fold_idx/test_idx-'+str(fold+1)+'.txt')
     trid=np.loadtxt('dataset/PTC/raw/10fold_idx/train_idx-'+str(fold+1)+'.txt')
-    trid=trid.astype(np.int)
-    tsid=tsid.astype(np.int)
+    trid=trid.astype(int)
+    tsid=tsid.astype(int)
 
     ds=dataset.copy()
     # d=dataset[[i for i in trid]].copy()

@@ -8,8 +8,10 @@ from torch_geometric.nn import (GINConv,global_add_pool,GATConv,ChebConv,GCNConv
 
 from libs.spect_conv import SpectConv,ML3Layer
 from libs.utils import Zinc12KDataset,SpectralDesign,get_n_params
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
 
-transform = SpectralDesign(nmax=37,recfield=2,dv=2,nfreq=7) 
+
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=37,recfield=2,dv=2,nfreq=7) 
 
 dataset = Zinc12KDataset(root="dataset/ZINC/",pre_transform=transform)
 

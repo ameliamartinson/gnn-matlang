@@ -1,5 +1,5 @@
-from layers_tf import *
-from metrics_tf import *
+from libs.layers_tf import *
+from libs.metrics_tf import *
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS

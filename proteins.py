@@ -21,10 +21,12 @@ import matplotlib.pyplot as plt
 from libs.spect_conv import SpectConv,ML3Layer
 from math import comb
 from libs.utils import ProteinsDataset, SpectralDesign
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
+
 torch.manual_seed(0)
 
 
-transform = SpectralDesign(nmax=0,adddegree=True,recfiled=1,dv=4,nfreq=3) 
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=0,adddegree=True,recfiled=1,dv=4,nfreq=3) 
 dataset = ProteinsDataset(root="dataset/proteins/",pre_transform=transform,contfeat=False)
 
 
@@ -298,8 +300,8 @@ for fold in range(0,10):
     
     tsid=np.loadtxt('dataset/proteins/raw/10fold_idx/test_idx-'+str(fold+1)+'.txt')
     trid=np.loadtxt('dataset/proteins/raw/10fold_idx/train_idx-'+str(fold+1)+'.txt')
-    trid=trid.astype(np.int)
-    tsid=tsid.astype(np.int)
+    trid=trid.astype(int)
+    tsid=tsid.astype(int)
 
     ds=dataset.copy()
     d=dataset[[i for i in trid]].copy()

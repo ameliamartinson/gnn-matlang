@@ -8,9 +8,11 @@ from torch_geometric.data import DataLoader
 from torch_geometric.nn import (GINConv,global_mean_pool,GATConv,ChebConv,GCNConv)
 from libs.spect_conv import SpectConv,ML3Layer
 from libs.utils import BandClassDataset,SpectralDesign
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
 
 
-transform = SpectralDesign(nmax=200,recfiled=2,dv=4,nfreq=5) 
+
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=200,recfield=2,dv=4,nfreq=5) 
 dataset = BandClassDataset(root="dataset/bandclass/",pre_transform=transform)
 
 bsize=64

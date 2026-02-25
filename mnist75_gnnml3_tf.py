@@ -1,10 +1,11 @@
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 from libs.utils_tf import *
 from libs.models_tf import DSGCNN
-from tensorflow import set_random_seed
+
 import matplotlib.pyplot as plt
 import numpy as np
 

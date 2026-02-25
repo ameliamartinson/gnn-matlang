@@ -13,9 +13,11 @@ from torch_geometric.nn import (GINConv,global_add_pool,GATConv,ChebConv,GCNConv
 import numpy as np
 from libs.spect_conv import SpectConv,ML3Layer
 from libs.utils import PlanarSATPairsDataset,SpectralDesign
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
 
 
-transform = SpectralDesign(nmax=64,recfield=1,dv=2,nfreq=5,adddegree=True)
+
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=64,recfield=1,dv=2,nfreq=5,adddegree=True)
 dataset = PlanarSATPairsDataset(root="dataset/EXP/",pre_transform=transform)
 train_loader = DataLoader(dataset, batch_size=100, shuffle=False)
 

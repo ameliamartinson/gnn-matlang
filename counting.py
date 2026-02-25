@@ -8,12 +8,14 @@ from torch_geometric.nn import (GINConv,global_add_pool,GATConv,ChebConv,GCNConv
 import numpy as npi
 from libs.spect_conv import SpectConv,ML3Layer
 from libs.utils import GraphCountDataset,SpectralDesign,get_n_params
+from chebyshev_approx.cheb_utils import ChebyshevSpectralDesign
+
 import scipy.io as sio
 from sklearn.metrics import r2_score
 
 
 
-transform = SpectralDesign(nmax=30,recfield=1,dv=1,nfreq=10,adddegree=True,laplacien=False,addadj=True)
+transform = ChebyshevSpectralDesign(num_probes=10, cheb_degree=30, nmax=30,recfield=1,dv=1,nfreq=10,adddegree=True,laplacien=False,addadj=True)
 dataset = GraphCountDataset(root="dataset/subgraphcount/",pre_transform=transform)
 
 # normalize outputs
